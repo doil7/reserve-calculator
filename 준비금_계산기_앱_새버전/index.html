@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>준비금 계산기</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#294c70">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{font-family:system-ui,-apple-system,"Malgun Gothic","Noto Sans KR",sans-serif;color:#243247;background:#eef2f8;
+ --ok:#23754c;--okbg:#e3f4ea;--over:#b45309;--overbg:#fdf0dc;--under:#bd3947;--underbg:#fbe6e8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0 0 28px}
+header.sticky{position:sticky;top:0;z-index:5;background:#294c70;color:#fff;padding:14px 16px 16px;box-shadow:0 4px 18px #1c2f4a33}
+.hwrap{max-width:650px;margin:0 auto}
+.htop{display:flex;align-items:center;justify-content:space-between;font-size:13px;opacity:.85;font-weight:700}
+.amount{font-size:34px;font-weight:850;letter-spacing:-.5px;margin-top:2px}
+.chip{display:inline-block;margin-top:8px;padding:7px 14px;border-radius:999px;font-weight:800;font-size:15px;background:var(--okbg);color:var(--ok)}
+.chip.over{background:var(--overbg);color:var(--over)}.chip.under{background:var(--underbg);color:var(--under)}
+main{max-width:650px;margin:14px auto 0;padding:0 12px}
+.card{background:#fff;border-radius:20px;padding:6px 14px;box-shadow:0 8px 28px #24324710}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #edf0f5}
+.row:last-child{border-bottom:0}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+.dot{flex:none;width:12px;align-self:stretch;min-height:40px;border-radius:6px;background:var(--c)}
+.coin .dot{width:22px;height:22px;min-height:0;align-self:center;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff9,transparent 55%),var(--c);box-shadow:inset 0 0 0 2px #0000001f}
+.name{font-size:17px;font-weight:800}
+.sum{font-size:14px;color:#6b7a8f;font-weight:700;margin-top:1px;white-space:nowrap}
+.sum.has{color:#294c70}
+.step{display:flex;align-items:center;gap:6px}
+.step button{width:42px;height:42px;padding:0;border-radius:13px;font-size:24px;line-height:1;background:#e8eef5;color:#29415e;font-weight:700}
+.step button:active{background:#d3deec}
+.step input{width:64px;height:42px;padding:0 6px;border:1px solid #d4dbe5;border-radius:13px;font-size:19px;font-weight:700;text-align:center;color:#26364b;background:#fff}
+input:focus{outline:2px solid #a8bfdc;border-color:#7898c1}
+.baseline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;background:#fff;border-radius:20px;padding:14px;box-shadow:0 8px 28px #24324710}
+.baseline label{font-weight:800}
+.baseline input{width:150px;height:44px;padding:0 12px;border:1px solid #d4dbe5;border-radius:13px;font-size:19px;font-weight:700;text-align:right;color:#26364b}
+.detail{background:#fff;border-radius:20px;padding:16px;color:#47566b;line-height:1.55;box-shadow:0 8px 28px #24324710;font-weight:600}
+.actions{display:flex;gap:10px;margin-top:14px}
+.actions button{flex:1;border:0;border-radius:14px;padding:15px 10px;background:#e1e8f1;color:#29415e;font-size:15px;font-weight:800;cursor:pointer}
+.actions button.primary{background:#294c70;color:#fff}
+.note{font-size:12px;color:#8792a2;line-height:1.55;margin:16px 4px 0}
+.overlay{position:fixed;inset:0;background:#0f1b2c8c;display:none;align-items:center;justify-content:center;padding:24px;z-index:20}
+.overlay.show{display:flex}
+.dlg{background:#fff;border-radius:20px;padding:22px;max-width:340px;width:100%}
+.dlg p{margin:0 0 18px;font-size:16px;font-weight:700;line-height:1.5}
+.dlg .btns{display:flex;gap:10px}
+.dlg button{flex:1;border:0;border-radius:13px;padding:14px;font-size:15px;font-weight:800;background:#e8eef5;color:#29415e}
+.dlg button.go{background:#bd3947;color:#fff}
+</style>
+</head>
+<body>
+<header class="sticky"><div class="hwrap">
+ <div class="htop"><span>현재 준비금 합계</span><span>준비금 계산기</span></div>
+ <div class="amount" id="total">0원</div>
+ <span class="chip" id="state">초과·부족 없음</span>
+</div></header>
+<main>
+ <div class="card" id="rows"></div>
+ <div class="baseline"><label for="baseline">기준 준비금</label><input id="baseline" type="number" inputmode="numeric" min="0" step="1000" value="300000"></div>
+ <div class="detail" id="detail">기준 금액과 실제 준비금이 일치합니다.</div>
+ <div class="actions">
+  <button class="primary" id="reset">처음 수량으로 초기화</button>
+  <button id="zero">수량 모두 0으로</button>
+ </div>
+ <p class="note">수량과 기준 준비금은 이 기기에 자동 저장됩니다.</p>
+</main>
+<div class="overlay" id="overlay"><div class="dlg"><p id="dlgText"></p><div class="btns"><button id="no">취소</button><button class="go" id="yes">확인</button></div></div></div>
+<script>
+const denominations=[50000,10000,5000,1000,500,100,50,10];
+const colors=['#e8863a','#4ea06a','#e3b83f','#4a7fc1','#aab4c0','#aab4c0','#aab4c0','#b87333'];
+const initial=[0,23,8,23,8,24,9,15];
+const rows=document.getElementById('rows');
+const baseline=document.getElementById('baseline');
+const money=n=>Math.round(n).toLocaleString('ko-KR')+'원';
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const qtyOf=i=>{const raw=Number(document.getElementById('q'+i).value);return Number.isFinite(raw)&&raw>0?Math.floor(raw):0};
+function setQty(i,v){const el=document.getElementById('q'+i);el.value=v;store.set('prep_q'+i,String(v));calculate()}
+function renderRows(){
+ rows.innerHTML='';
+ denominations.forEach((value,i)=>{
+  const row=document.createElement('div');row.className='row'+(value<1000?' coin':'');
+  row.style.setProperty('--c',colors[i]);
+  row.innerHTML=`<div class="who"><span class="dot"></span><div><div class="name">${value.toLocaleString('ko-KR')}원</div><div class="sum" id="a${i}">0원</div></div></div>
+  <div class="step"><button type="button" aria-label="${value}원 하나 줄이기" data-d="-1">−</button><input type="number" min="0" step="1" inputmode="numeric" aria-label="${value}원 수량" id="q${i}"><button type="button" aria-label="${value}원 하나 늘리기" data-d="1">＋</button></div>`;
+  rows.appendChild(row);
+  const input=row.querySelector('input');
+  const saved=store.get('prep_q'+i);
+  input.value=saved!==null?saved:initial[i];
+  input.addEventListener('input',()=>{store.set('prep_q'+i,input.value);calculate()});
+  input.addEventListener('focus',()=>input.select());
+  row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>setQty(i,Math.max(0,qtyOf(i)+Number(b.dataset.d)))));
+ });
+ const b=store.get('prep_baseline');
+ baseline.value=b!==null?b:'300000';
+ baseline.addEventListener('input',()=>{store.set('prep_baseline',baseline.value);calculate()});
+ baseline.addEventListener('focus',()=>baseline.select());
+ calculate();
+}
+function calculate(){
+ let sum=0;
+ denominations.forEach((v,i)=>{
+  const amount=v*qtyOf(i);sum+=amount;
+  const el=document.getElementById('a'+i);
+  el.textContent=money(amount);el.classList.toggle('has',amount>0);
+ });
+ document.getElementById('total').textContent=money(sum);
+ const target=Math.max(0,Number(baseline.value)||0),diff=sum-target;
+ const state=document.getElementById('state'),detail=document.getElementById('detail');
+ state.className='chip';
+ if(diff>0){state.textContent='초과 '+money(diff);state.classList.add('over');detail.textContent='기준 준비금보다 '+money(diff)+' 많습니다.'}
+ else if(diff<0){state.textContent='부족 '+money(-diff);state.classList.add('under');detail.textContent='기준 준비금보다 '+money(-diff)+' 부족합니다.'}
+ else{state.textContent='초과·부족 없음';detail.textContent='기준 금액과 실제 준비금이 일치합니다.'}
+}
+const overlay=document.getElementById('overlay');let onYes=null;
+function ask(text,fn){document.getElementById('dlgText').textContent=text;onYes=fn;overlay.classList.add('show')}
+document.getElementById('no').addEventListener('click',()=>overlay.classList.remove('show'));
+document.getElementById('yes').addEventListener('click',()=>{overlay.classList.remove('show');if(onYes)onYes()});
+overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('show')});
+document.getElementById('reset').addEventListener('click',()=>ask('수량과 기준 준비금을 처음 값으로 되돌릴까요?',()=>{denominations.forEach((_,i)=>setQty(i,initial[i]));baseline.value=300000;store.set('prep_baseline','300000');calculate()}));
+document.getElementById('zero').addEventListener('click',()=>ask('모든 수량을 0으로 만들까요?',()=>{denominations.forEach((_,i)=>setQty(i,0))}));
+renderRows();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
